@@ -124,8 +124,7 @@ void pll_init(void){
                digitalWrite(SCK, LOW);     
                delay(1);       
        }
-/
+
    digitalWrite(CS, HIGH);  
 
 }   // end of pll_init()   
-
