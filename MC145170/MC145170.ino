@@ -13,7 +13,7 @@
 
 void setup() {
 
-pinMode(TX, INPUT);
+//pinMode(TX, INPUT);
 pinMode(TX_SCK, OUTPUT);
 pinMode(TX_CS, OUTPUT);
 pinMode(TX_MOSI, OUTPUT);
@@ -25,8 +25,17 @@ pinMode(RX_MOSI, INPUT);
 digitalWrite(TX_CS, HIGH);
 
 delay(10);
+
 pll_init();
+
 delay(10);
+
+while(digitalRead(RX_CS))
+  ;
+
+delay(20);
+
+
 
 }   // end of setup()
 
@@ -36,6 +45,8 @@ unsigned int FREQ;    // Freqency = FREQ x 5kHz
 
 if(!digitalRead(RX_CS)){
 /*
+if(digitalRead(TX))
+
     FREQ = 5205;
 
 else
@@ -43,10 +54,11 @@ else
     FREQ = 5751;
 
    delay(1000);
-*/  
-     write_pll(read_pll()-2139);    // read pic rx pll and recalculate write to tx pll **(10.695MHz)
+   write_pll(FREQ);
+*/    
+//     write_pll(read_pll());    // read pic rx pll and recalculate write to tx pll **(10.695MHz)(2139)
 
-     delay(10);
+       read_pll();
      
   }   // end of if()
 }   // end of loop()
@@ -55,17 +67,25 @@ unsigned int read_pll(void){
 
 unsigned int COUNTER = 0;
 
-  for(int i = 0; i < 16; i++){
+digitalWrite(TX_CS, LOW);
 
-  while(digitalRead(RX_SCK))
-    ;
-  
-  COUNTER = COUNTER << i | digitalRead(RX_MOSI);
+  for(int i = 0; i < 16; i++){
 
   while(!digitalRead(RX_SCK))
     ;
+    digitalWrite(TX_SCK, HIGH);
+  
+//  COUNTER = COUNTER >> i | digitalRead(RX_MOSI);
 
+  digitalWrite(TX_MOSI, digitalRead(RX_MOSI));
+
+  while(digitalRead(RX_SCK))
+    ;
+    digitalWrite(TX_SCK, LOW);
   }
+
+
+digitalWrite(TX_CS, HIGH);  
 
 return COUNTER;  
 }   // end of read_pll()
