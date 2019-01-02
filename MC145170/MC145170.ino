@@ -6,10 +6,11 @@
 #define TX_SCK 13
 #define TX_CS 10
 #define TX_MOSI 11
-#define TX 9
+//#define TX 9
 #define RX_SCK 8
 #define RX_CS 7
 #define RX_MOSI 6
+#define BOOT_DELAY 2850
 
 void setup() {
 
@@ -24,68 +25,44 @@ pinMode(RX_MOSI, INPUT);
 
 digitalWrite(TX_CS, HIGH);
 
-delay(10);
+delay(BOOT_DELAY);
 
 pll_init();
-
-delay(10);
 
 while(digitalRead(RX_CS))
   ;
 
-delay(20);
-
-
-
 }   // end of setup()
+
 
 void loop() {
 
-unsigned int FREQ;    // Freqency = FREQ x 5kHz
 
-if(!digitalRead(RX_CS)){
-/*
-if(digitalRead(TX))
+if(!digitalRead(RX_CS))
+  
+     write_pll(read_pll()-2139);    // read pic rx pll and recalculate write to tx pll **(10.695MHz)(2139) Freqency = COUNTER x 5kHz
 
-    FREQ = 5205;
-
-else
-
-    FREQ = 5751;
-
-   delay(1000);
-   write_pll(FREQ);
-*/    
-//     write_pll(read_pll());    // read pic rx pll and recalculate write to tx pll **(10.695MHz)(2139)
-
-       read_pll();
-     
-  }   // end of if()
 }   // end of loop()
+
+
 
 unsigned int read_pll(void){
 
 unsigned int COUNTER = 0;
+unsigned int BIT = 0;
 
-digitalWrite(TX_CS, LOW);
-
-  for(int i = 0; i < 16; i++){
+  for(int i = 1; i < 17; i++){
 
   while(!digitalRead(RX_SCK))
     ;
-    digitalWrite(TX_SCK, HIGH);
-  
-//  COUNTER = COUNTER >> i | digitalRead(RX_MOSI);
 
-  digitalWrite(TX_MOSI, digitalRead(RX_MOSI));
+  BIT = digitalRead(RX_MOSI);
+  
+  COUNTER |= BIT << 16-i;
 
   while(digitalRead(RX_SCK))
     ;
-    digitalWrite(TX_SCK, LOW);
-  }
-
-
-digitalWrite(TX_CS, HIGH);  
+  }   // end of for()
 
 return COUNTER;  
 }   // end of read_pll()
@@ -101,9 +78,9 @@ void write_pll(unsigned int COUNTER){
 
 
                digitalWrite(TX_SCK, HIGH);
-               delay(1);
+               delayMicroseconds(100);
                digitalWrite(TX_SCK, LOW);     
-               delay(1);       
+               delayMicroseconds(100);       
        }
 
    digitalWrite(TX_CS, HIGH);
@@ -118,11 +95,10 @@ void pll_init(void){
 
                digitalWrite(TX_MOSI, (0 >> 3-i & 1));    // write Dec value 0 with 4 bits
 
-
                digitalWrite(TX_SCK, HIGH);
-               delay(1);
+               delayMicroseconds(100);
                digitalWrite(TX_SCK, LOW);     
-               delay(1);       
+               delayMicroseconds(100);       
        }  // first 4 bit init
 
  delay(5);
@@ -133,16 +109,15 @@ void pll_init(void){
 
                digitalWrite(TX_MOSI, (2 >> 4-i & 1));    // write Dec value 2 with 5 bits
 
-
                digitalWrite(TX_SCK, HIGH);
-               delay(1);
+               delayMicroseconds(100); 
                digitalWrite(TX_SCK, LOW);     
-               delay(1);       
+               delayMicroseconds(100);       
        }
 
    digitalWrite(TX_CS, HIGH);
 
-   delay(1);
+   delayMicroseconds(100); 
 
    digitalWrite(TX_CS, LOW);
   
@@ -150,16 +125,15 @@ void pll_init(void){
 
                digitalWrite(TX_MOSI, (96 >> 7-i & 1));   // write Dec value 96 with 8 bits
 
-
                digitalWrite(TX_SCK, HIGH);
-               delay(1);
+               delayMicroseconds(100); 
                digitalWrite(TX_SCK, LOW);     
-               delay(1);       
+               delayMicroseconds(100);       
        }
 
    digitalWrite(TX_CS, HIGH);
 
-   delay(1);
+   delayMicroseconds(100); 
 
    digitalWrite(TX_CS, LOW);
   
@@ -169,9 +143,9 @@ void pll_init(void){
 
 
                digitalWrite(TX_SCK, HIGH);
-               delay(1);
+               delayMicroseconds(100); 
                digitalWrite(TX_SCK, LOW);     
-               delay(1);       
+               delayMicroseconds(100);        
        }
 
    digitalWrite(TX_CS, HIGH);  
