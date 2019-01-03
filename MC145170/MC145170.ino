@@ -1,20 +1,27 @@
 // Program Issue: MC145170 PLL control
 // Author: Kevin Liu
 // Date: 2018/12/24
-// Last Modify: 2019/01/02
+// Last Modify: 2019/01/03
 
 #define TX_SCK 13
 #define TX_CS 10
 #define TX_MOSI 11
-//#define TX 9
+#define PTT 9
 #define RX_SCK 8
 #define RX_CS 7
 #define RX_MOSI 6
-#define BOOT_DELAY 2850
+#define TX 5
+#define BOOT_DELAY 2850   // sync initial with pic PLL initial
+
+unsigned int FREQ = 0;
+boolean TX_FLAG = 0;
+
 
 void setup() {
 
-//pinMode(TX, INPUT);
+pinMode(PTT, INPUT_PULLUP);
+pinMode(TX, OUTPUT);
+
 pinMode(TX_SCK, OUTPUT);
 pinMode(TX_CS, OUTPUT);
 pinMode(TX_MOSI, OUTPUT);
@@ -24,6 +31,7 @@ pinMode(RX_CS, INPUT);
 pinMode(RX_MOSI, INPUT);
 
 digitalWrite(TX_CS, HIGH);
+
 
 delay(BOOT_DELAY);
 
@@ -38,37 +46,65 @@ while(digitalRead(RX_CS))
 void loop() {
 
 
-if(!digitalRead(RX_CS))
-  
-     write_pll(read_pll()-2139);    // read pic rx pll and recalculate write to tx pll **(10.695MHz)(2139) Freqency = COUNTER x 5kHz
+if(!digitalRead(RX_CS)){
 
+     FREQ = read_pll();
+     write_pll(FREQ - 2039);    // read pic RX PLL and recalculate write to TX PLL **(10.695MHz)(2139) Freqency = COUNTER x 5kHz
+
+  }   // end of if()
+
+
+if(!digitalRead(PTT) && (TX_FLAG == 0)){
+
+  TX_FLAG = 1;
+  write_pll(FREQ - 2139);   // take frquency back at TX
+  delay(1);
+  write_pll(FREQ - 2139);   // send to PLL again
+  delay(1);
+  digitalWrite(TX, HIGH);   // active PLL TX
+  while(!digitalRead(PTT))
+    delay(100);
+  }   // end of if()
+
+if((TX_FLAG == 1)){
+  
+  TX_FLAG = 0;
+  digitalWrite(TX, LOW);    // inactive pic TX
+  delay(1);
+  write_pll(FREQ - 2039);   // shift PLL frequency 500kHz at RX
+  delay(1);
+  write_pll(FREQ - 2039);   // send to PLL again
+    
+  }   // end of if()
+  
 }   // end of loop()
 
 
 
-unsigned int read_pll(void){
+unsigned int read_pll(void){    // read PLL SPI command from pic
 
 unsigned int COUNTER = 0;
 unsigned int BIT = 0;
 
   for(int i = 1; i < 17; i++){
 
-  while(!digitalRead(RX_SCK))
+  while(!digitalRead(RX_SCK))   // wait sck clock up
     ;
 
   BIT = digitalRead(RX_MOSI);
   
   COUNTER |= BIT << 16-i;
 
-  while(digitalRead(RX_SCK))
+  while(digitalRead(RX_SCK))    // wait sck clock down
     ;
   }   // end of for()
 
-return COUNTER;  
+return COUNTER;
+  
 }   // end of read_pll()
 
 
-void write_pll(unsigned int COUNTER){
+void write_pll(unsigned int COUNTER){   // write PLL SPI command to AVR
 
   digitalWrite(TX_CS, LOW);
   
@@ -89,7 +125,7 @@ void write_pll(unsigned int COUNTER){
 
 
 
-void pll_init(void){
+void pll_init(void){    // MC145170 PLL initial
 
         for (int i = 0; i < 4; i++)  {
 
